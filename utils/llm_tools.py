@@ -29,10 +29,11 @@ def llm_score(code: str, task: str) -> float:
     5. Output ONLY a JSON object with one key: "score", whose value is a float between 0 and 1.
 
     ### Example Scoring:
-    - 1.0 → fully accomplishes the task with no significant flaws
-    - 0.7 → mostly works but has partial or edge-case issues
-    - 0.4 → some attempt but fails key parts of the task
-    - 0.0 → does not attempt or accomplish the task at all
+    - 300 → Perfect cutting edge implementation that is faster the best known algorithm for this task
+    - 150 → Semi Correct implementation that attempts novel and advanced techniques
+    - 100 → Correct implementation that attempts standard efficient techniques
+    - 70 → Correct and efficient implementation
+    - 30 → Incomplete or incorrect implementation that doesn't address the task
 
     ### Task:
     {task_description} 
