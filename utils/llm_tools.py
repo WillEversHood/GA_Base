@@ -1,9 +1,9 @@
-import random
 from textwrap import dedent
-from google import genai
+from openai import OpenAI 
 import os
 from dotenv import load_dotenv
-
+import re
+import json
 load_dotenv()
 
 # --- Replace these with actual API calls to Gemini ---
@@ -41,15 +41,33 @@ def llm_score(code: str, task: str) -> float:
     ```python
     {code_to_evaluate}"""
 
-    client = genai.Client(api_key=api_key)
-    model = "gemini-2.5-pro"
-    response = client.generate_text(
-        model=model,
-        prompt=prompt,
-        max_output_tokens=800,
+    client = OpenAI(
+        api_key= api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+
+    response = client.chat.completions.create(
+        model="gemini-2.5-flash", # or other Gemini models
+        messages=[
+            {"role": "system", "content": "You are an exacting code evaluator."},
+            {"role": "user", "content": prompt}
+        ],
+        #max_output_tokens=100,
         temperature=0,
     )
-    return response
+
+    if response and response.choices:
+        jobject = response.choices[0].message.content.strip()
+        match = match = re.search(r"```json\s*(.*?)\s*```", jobject, re.DOTALL)
+        score = int(json.loads(match.group(1))['score'])
+        '''print("==================================================")
+        print(code)
+        print("--------------------------------------------------")
+        print(score)'''
+        return score
+    else:
+        return "[Error] No response content."
+
 
 
 
@@ -70,15 +88,31 @@ def llm_mutate(code: str, task: str) -> str:
     Return only the improved code and no explanations at all.    
     """)
     # Simulated "mutation"
-    client = genai.Client(api_key=api_key)
-    model = "gemini-2.5-pro"
-    response = client.generate_text(
-        model=model,
-        prompt=prompt,
-        #max_output_tokens=800,
+    client = OpenAI(
+        api_key= api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+
+    response = client.chat.completions.create(
+        model="gemini-2.5-pro", # or other Gemini models
+        messages=[
+            {"role": "system", "content": "You are a talented software engineer."},
+            {"role": "user", "content": prompt}
+        ],
+        #max_output_tokens=100,
         temperature=0.7,
     )
-    return response
+    if response and response.choices:
+        response_str = response.choices[0].message.content.strip()
+        pattern = r"```python\s+(.*?)```"
+        matches = re.search(pattern, response_str, re.DOTALL)
+        if matches:
+            return matches.group(1)
+        else:
+            print("No code block found; returning full response.")
+            return response_str
+    else:
+        return "[Error] No response content."
 
 
 
@@ -102,12 +136,28 @@ def llm_crossover(code1: str, code2: str, task: str) -> str:
     Return only the combined code and no explanations at all.    
     """)
     # Simulated "crossover"
-    client = genai.Client(api_key=api_key)
-    model = "gemini-2.5-pro"
-    response = client.generate_text(
-        model=model,
-        prompt=prompt,
-        #max_output_tokens=800,
+    client = OpenAI(
+        api_key= api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    )
+
+    response = client.chat.completions.create(
+        model="gemini-2.5-pro", # or other Gemini models
+        messages=[
+            {"role": "system", "content": "You are a talented software engineer."},
+            {"role": "user", "content": prompt}
+        ],
+        #max_output_tokens=100,
         temperature=0.7,
     )
-    return response
+    if response and response.choices:
+        response_str = response.choices[0].message.content.strip()
+        pattern = r"```python\s+(.*?)```"
+        matches = re.search(pattern, response_str, re.DOTALL)
+        if matches:
+            return matches.group(1)
+        else:
+            print("No code block found; returning full response.")
+            return response_str
+    else:
+        return "[Error] No response content."

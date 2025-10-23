@@ -58,6 +58,7 @@ def select_top(cur, gen, limit=2):
 def parent_selection(parents):
     parents_for_mutation = []
     for i in range(NUM_MUTATIONS):
+        
         code = load_code(parents[i][1])
         id = parents[i][0]
         origin_id = parents[i][2]
@@ -79,8 +80,8 @@ def main():
     conn.commit()
 
     # Evolve generations
-    for gen in range(0, NUM_GENERATIONS):
-        index += 1
+    for gen in range(1, NUM_GENERATIONS):
+        
         print(f"\n=== Generation {gen} ===")
 
         parents = select_top(cur, gen - 1)
@@ -92,24 +93,27 @@ def main():
             break
 
             # Mutate via LLM
-        if random.random() < MUTATION_RATE:
-            parent_num = p[int(random.random() * (len(p)- 1))]
-            child_code = llm_mutate(p[parent_num][0], TARGET_TASK)
-            fname = save_code(child_code, gen, index)
-            score = llm_score(child_code, TARGET_TASK)
-            cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                        (fname, gen, score, p[parent_num][1], 0, p[parent_num][2]))
-            conn.commit()
-        else:
-            # update this to be any two parents selevted without same origin_id
-            child_code = llm_crossover(p[0][0], p[1][0], TARGET_TASK)
+        for k in range(NUM_MUTATIONS):
+            print(f"k: {k} --")
+            index += 1
+            if random.random() < MUTATION_RATE:
+                parent_num = int(random.random() * (len(p)- 1))
+                child_code = llm_mutate(p[parent_num][0], TARGET_TASK)
+                fname = save_code(child_code, gen, index)
+                score = llm_score(child_code, TARGET_TASK)
+                cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                            (fname, gen, score, p[parent_num][1], 0, p[parent_num][2]))
+                conn.commit()
+            else:
+                # update this to be any two parents selected without same origin_id
+                child_code = llm_crossover(p[0][0], p[1][0], TARGET_TASK)
 
-            fname = save_code(child_code, gen, index)
-            score = llm_score(child_code, TARGET_TASK)
-            cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                        (fname, gen, score, p[0][1], p[1][1], p[0][2]))
-            conn.commit()
-        print(f"→ {fname}: score={score:.2f}")
+                fname = save_code(child_code, gen, index)
+                score = llm_score(child_code, TARGET_TASK)
+                cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                            (fname, gen, score, p[0][1], p[1][1], p[0][2]))
+                conn.commit()
+            print(f"→ {fname}: score={score:.2f}")
 
         time.sleep(1)
 
