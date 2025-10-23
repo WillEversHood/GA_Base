@@ -1,0 +1,8 @@
+.env
+db.splite3
+__pycache__/
+*.pyc
+.vscode/
+.env
+utils/.env
+
