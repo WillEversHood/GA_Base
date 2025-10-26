@@ -4,15 +4,18 @@ import sqlite3
 import time
 from pathlib import Path
 from utils.llm_tools import llm_score, llm_mutate, llm_crossover
+import numpy as np
+from visualizations import Vsualizations
 
 # --- Configuration ---
 POPULATION_SIZE = 5
-NUM_GENERATIONS = 3
+NUM_GENERATIONS = 1
 MUTATION_RATE = 0.4
 NUM_MUTATIONS = 2
 DB_PATH = "db.sqlite3"
 POP_DIR = Path("population")
 TARGET_TASK = "Write a Python function that returns the nth Fibonacci number efficiently."
+PERFORMANCE_TRACKING = np.zeros((NUM_GENERATIONS, NUM_MUTATIONS))
 
 # --- Setup ---
 POP_DIR.mkdir(exist_ok=True)
@@ -79,6 +82,9 @@ def main():
         cur.execute("INSERT INTO population (filename, generation, score, origin_id) VALUES (?, ?, ?, ?)", (fname, 0, score, i))
     conn.commit()
 
+    '''Initialize performance tracking structure here'''
+    vis = Vsualizations()
+
     # Evolve generations
     for gen in range(1, NUM_GENERATIONS):
         
@@ -93,11 +99,14 @@ def main():
             break
 
             # Mutate via LLM
+        # performance array 3xNUM_MUTATIONS
+        perf_array = np.zeros((3, NUM_MUTATIONS))   
         for k in range(NUM_MUTATIONS):
             print(f"k: {k} --")
             index += 1
+            # for randum island assignment and parent selection so it outside of mutation bracket :)          
+            parent_num = int(random.random() * (len(p)- 1))
             if random.random() < MUTATION_RATE:
-                parent_num = int(random.random() * (len(p)- 1))
                 child_code = llm_mutate(p[parent_num][0], TARGET_TASK)
                 fname = save_code(child_code, gen, index)
                 score = llm_score(child_code, TARGET_TASK)
@@ -115,6 +124,11 @@ def main():
                 conn.commit()
             print(f"→ {fname}: score={score:.2f}")
 
+            # Track Performance
+            perf_array[0][k] = score
+            perf_array[1][k] = index
+            perf_array[2][k] = p[parent_num][2]  # origin_id            
+        vis.log_performance(perf_array)
         time.sleep(1)
 
     print("\nDone evolving!")
