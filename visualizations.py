@@ -129,7 +129,7 @@ class Vsualizations:
         plt.xlabel('Generations')
         plt.ylabel('Heuristic Score')
         plt.grid(True)
-        plt.legend()
+        plt.legend() 
         plt.show()
         return  
 
