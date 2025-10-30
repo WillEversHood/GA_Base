@@ -5,11 +5,12 @@ import math
 import os
 import sqlite3
 
-class Vsualizations:
+class Visualizations:
 
-    def __init__(self):
+    def __init__(self, num_gen):
         #self.mutations = mutations
         self.perf_data = []
+        self.num_gen = num_gen
         # column1 : score
         # column2 : id
         # column3 : origin_id
@@ -19,8 +20,7 @@ class Vsualizations:
         self.perf_data.append(score_list)
 
     def plot_performance(self):
-        performance_array = np.array(self.perf_data)
-        x = np.arange(len(performance_array[:,0,0]))
+        x = np.arange(self.num_gen)
         plt.figure(figsize=(10, 6)) # Optional: set the figure size
 
         # Extract data for each line
@@ -28,8 +28,9 @@ class Vsualizations:
         y2 = np.zeros(x.shape)  # Average_score
         #y3 = np.zeros(x.shape)  # origin_id
         for i in range(len(x)):
-            y1[i] = (performance_array[i,0,:]).max()  # Maximum_Score
-            y2[i] = (performance_array[i,0,:]).mean() # Average_score
+            data = self.get_gen(i)
+            y1[i] = int((data['score']).max())  # Maximum_Score
+            y2[i] = int((data['score']).mean()) # Average_score
             
 
         # Plot the first line Maximum_Score (Red)
@@ -51,7 +52,37 @@ class Vsualizations:
         # 4. Show the Plot
         plt.show()
         return
+    def get_gen(self, gen):
+        """Connects to the DB and retrieves all entries for a specific generation."""
+    
+        # Use a placeholder (?) for the value to be substituted
+        sql_query = """
+        SELECT *
+        FROM population
+        WHERE generation = ?;
+        """
+        
+        conn = None
+        try:
+            # 1. Connect to the database
+            conn = sqlite3.connect('db.sqlite3')
+            
+            # 2. Execute the query using the read_sql_query method.
+            #    The 'params' argument safely injects the value into the query.
+            df_entries = pd.read_sql_query(
+                sql_query, 
+                conn, 
+                params=[gen] # Must be passed as an iterable (list or tuple)
+            )
+            return df_entries
 
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return pd.DataFrame()
+            
+        finally:
+            if conn:
+                conn.close()
 
     def get_best_entries(self):
         """
@@ -104,9 +135,8 @@ class Vsualizations:
                 #conn.commit()
                 conn.close()
     
-    def island_visualization(self):
-        performance_array = np.array(self.perf_data)
-        x = np.arange(len(performance_array[:,0,0]))
+    def island_visualization(self):        
+        x = np.arange(self.num_gen)
         data = self.get_best_entries()
         num_islands = data['origin_id'].nunique()
         num_gen = data['generation'].nunique()
@@ -133,6 +163,12 @@ class Vsualizations:
         plt.show()
         return  
 
-vis = Vsualizations()
-values = vis.get_best_entries()
-print(values)
+#vis = Visualizations(4)
+#vis.island_visualization()
+#values = vis.get_best_entries()
+#print(values)
+
+
+
+
+

@@ -1,5 +1,5 @@
 def fib(n):
-    if n < 0:
+    if not isinstance(n, int) or n < 0:
         raise ValueError("Input must be a non-negative integer")
     if n <= 1:
         return n

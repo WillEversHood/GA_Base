@@ -1,12 +1,7 @@
 def fib(n):
-    """
-    Calculates the nth Fibonacci number using an efficient iterative approach.
-    Handles non-negative integers as input.
-    """
-    if n < 0:
-        raise ValueError("Input must be a non-negative integer.")
-    
+    if n <= 1:
+        return n
     a, b = 0, 1
-    for _ in range(n):
+    for _ in range(n - 1):
         a, b = b, a + b
-    return a
+    return b
