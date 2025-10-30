@@ -157,7 +157,7 @@ def main():
         money_array = np.array(llmTools.MONEY)
         money_sums = money_array.sum(axis=0)
         with open('costs.txt', 'a', encoding='utf-8') as f:
-            f.write(f" {money_sums[0]}, ${money_sums[1]}")
+            f.write(f" {money_sums[0]}, ${money_sums[1]}\n")
     print("\nDone evolving!")
     
 if __name__ == "__main__":
