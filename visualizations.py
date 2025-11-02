@@ -161,14 +161,16 @@ class Visualizations:
         plt.grid(True)
         plt.legend() 
         plt.show()
-        return  
+        return
+
+    def empty_db(self):
+        conn = sqlite3.connect('db.sqlite3')
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM population")
+        cursor.execute("DROP TABLE IF EXISTS population")
+        conn.commit()
+        conn.close()
+     
 
 #vis = Visualizations(4)
-#vis.island_visualization()
-#values = vis.get_best_entries()
-#print(values)
-
-
-
-
-
+#vis.empty_db()
