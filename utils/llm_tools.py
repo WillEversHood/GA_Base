@@ -85,7 +85,7 @@ class LLMTools:
         self.MONEY.append(np.array([tokens, cost]))
         if response and response.choices:
             jobject = response.choices[0].message.content.strip()
-            print(jobject)
+            #print(jobject)
             match = re.search(r'</reasoning>\s*```json\s*(\{.*?\})\s*```', jobject, re.DOTALL)
             score = int(json.loads(match.group(1))['score'])
             
