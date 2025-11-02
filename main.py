@@ -117,63 +117,21 @@ def main():
                 print(f"-- Child {k} of Island {i} --")
                 print(f"k: {k} --")
                 index += 1
-                if mut_or_mix < 0:#MUTATION_RATE: make it crossover for now
-                    if k == 0 :
-                        child_code = llmTools.llm_mutate(p[i][0], TARGET_TASK)
-                        fname = save_code(child_code, gen+1, index)
-                        score = llmTools.llm_score(child_code, TARGET_TASK)
-                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                                    (fname, gen+1, score, p[i][1], 0, i))
-                        
-                        conn.commit()
-                        #print(f"Inserted first mutated child from parent {p[i][2]}")
-                        new_parent_code = child_code
-                        new_parent_1 = index
-                        new_parent_2 = 0
-                        new_parent_oid = p[i][2]
-                    else: 
-                        child_code = llmTools.llm_mutate(new_parent_code, TARGET_TASK)
-                        fname = save_code(child_code, gen+1, index)
-                        score = llmTools.llm_score(child_code, TARGET_TASK)
-                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                                    (fname, gen+1, score, new_parent_1, new_parent_2, i))
-                        conn.commit()
-                        #print(f"Inserted first mutated child from parent {new_parent_oid}")
-                        new_parent_code = child_code
-                        new_parent_1 = index
-                        #new_parent_2 = 0
-                        #new_parent_oid = p[parent_num][2]
+                if mut_or_mix < random.random(): #MUTATION_RATE: make it crossover for now
+                    child_code = llmTools.llm_mutate(p[i][0], TARGET_TASK)
+                    fname = save_code(child_code, gen+1, index)
+                    score = llmTools.llm_score(child_code, TARGET_TASK)
+                    cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                (fname, gen+1, score, p[i][1], 0, i))
+                    conn.commit()
                 else:
-                    if k == 0:
-                        # update this to be any two parents selected without same origin_id
-                        child_code = llmTools.llm_crossover(p[0][0], p[1][0], TARGET_TASK)
-                        fname = save_code(child_code, gen+1, index)
-                        score = llmTools.llm_score(child_code, TARGET_TASK)
-                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                                    (fname, gen+1, score, p[0][1], p[1][1], i))
-                        conn.commit()
-                        #print(f"Inserted first mutated child from parent {p[i][2]}")
-                        new_parent_code = child_code
-                        new_parent_1 = index
-                        new_parent_2 = p[1][1]
-                        #new_parent_oid = p[0][2]
-                    else:
-                        # randomly select original parent to crossover with
-                        if random.random() < 0.5:
-                            parent_to_use = 0
-                        else:
-                            parent_to_use = 1
-                        child_code = llmTools.llm_crossover(new_parent_code, p[parent_to_use][0], TARGET_TASK)
-                        fname = save_code(child_code, gen+1, index)
-                        score = llmTools.llm_score(child_code, TARGET_TASK)
-                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                                    (fname, gen+1, score, new_parent_1, p[parent_to_use][1], i))
-                        conn.commit()
-                        #print(f"Inserted first mutated child from parent {new_parent_oid}")
-                        new_parent_code = child_code
-                        new_parent_1 = index
-                        new_parent_2 = p[parent_to_use][1]
-                        #new_parent_oid = p[0][2]
+                    # update this to be any two parents selected without same origin_id
+                    child_code = llmTools.llm_crossover(p[0][0], p[1][0], TARGET_TASK)
+                    fname = save_code(child_code, gen+1, index)
+                    score = llmTools.llm_score(child_code, TARGET_TASK)
+                    cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                (fname, gen+1, score, p[0][1], p[1][1], i))
+                    conn.commit()
                 print(f"→ {fname}: score={score:.2f}")
 
                 # Track Performance

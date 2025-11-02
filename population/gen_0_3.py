@@ -1,1 +1,0 @@
-def fib(n): import math; return round(((1+math.sqrt(5))/2)**n/math.sqrt(5))
