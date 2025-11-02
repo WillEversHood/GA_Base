@@ -8,15 +8,13 @@ import numpy as np
 from visualizations import Visualizations
 
 # --- Configuration ---
-POPULATION_SIZE = 5
+POPULATION_SIZE = 2
 NUM_GENERATIONS = 2
 MUTATION_RATE = 0.4
-NUM_MUTATIONS = 2
 DB_PATH = "db.sqlite3"
 POP_DIR = Path("population")
 TARGET_TASK = "Write a Python function that returns the nth Fibonacci number efficiently."
-PERFORMANCE_TRACKING = np.zeros((NUM_GENERATIONS, NUM_MUTATIONS))
-
+PERFORMANCE_TRACKING = np.zeros((NUM_GENERATIONS, POPULATION_SIZE))
 # --- Setup ---
 def db_setup():
     POP_DIR.mkdir(exist_ok=True)
@@ -41,11 +39,11 @@ def db_setup():
 
 
 templates = [
-    "def fib(n): return 1 if n<=2 else fib(n-1)+fib(n-2)"#,
-   # "def fib(n): a,b=0,1\n for _ in range(n): a,b=b,a+b\n return a",
+    "def fib(n): return 1 if n<=2 else fib(n-1)+fib(n-2)",
+    "def fib(n): a,b=0,1\n for _ in range(n): a,b=b,a+b\n return a"
    # "def fib(n): import math; return round(((1+math.sqrt(5))/2)**n/math.sqrt(5))"
 ]
-
+NUM_ISLANDS = len(templates)
 def save_code(code, generation, index):
     fname = f"gen_{generation}_{index}.py"
     fpath = POP_DIR / fname
@@ -62,29 +60,17 @@ def select_top(cur, gen):
 """integrate a parent selection function sequentially with select_top"""
 def parent_selection(parents, gen):
     parents_for_mutation = []
-    distinct_origins = {t[2] for t in parents}
-    count = len(distinct_origins)
     parent_array = np.array(parents)
-    print("Parent array:")
-    print(parent_array)
-    print(parent_array.shape)
-    for island in range(count-1):
+    for island in range(NUM_ISLANDS):
         mask = (parent_array[:, 2].astype(int) == island)
         filtered_array = parent_array[mask,:]
-        print('filtered array:')
-        print(filtered_array)
         # parent selection logic here add power law etc.
         id = filtered_array[0,0]  # select top 1 from each island
-        print('id')
-        print(id)
         name = str(filtered_array[0,1])
-        print('name')
-        print(name)
         origin_id = int(filtered_array[0,2])
-        print('origin_id')
-        print(origin_id)
         code = load_code(name)
         parents_for_mutation.append((code, id, origin_id))
+    print(f"Parents for Evolving Array{parents_for_mutation}")
     return parents_for_mutation
 
 # --- Genetic Algorithm ---
@@ -108,58 +94,102 @@ def main():
     vis = Visualizations(NUM_GENERATIONS)
 
     # Evolve generations
-    for gen in range(1, NUM_GENERATIONS):
+    for gen in range(0, NUM_GENERATIONS):
         
-        print(f"\n=== Generation {gen} ===")
-
-        parents = select_top(cur, gen - 1)
-        p = parent_selection(parents, gen - 1)
-
+        print(f"\n=== Generation {gen+1} ===")
+        
+        parents = select_top(cur, gen)
+        p = parent_selection(parents, gen)
         # place a parent selection function here
         if not p:
             print("No parents found; stopping.")
             break
 
             # Mutate via LLM
-        # performance array 3xNUM_MUTATIONS
-        perf_array = np.zeros((3, NUM_MUTATIONS))   
-        for k in range(NUM_MUTATIONS):
-            print(f"k: {k} --")
-            index += 1
-            # for randum island assignment and parent selection so it outside of mutation bracket :)          
-            parent_num = int(random.random() * (len(p)- 1))
-            if random.random() < MUTATION_RATE:
-                child_code = llmTools.llm_mutate(p[parent_num][0], TARGET_TASK)
-                fname = save_code(child_code, gen, index)
-                score = llmTools.llm_score(child_code, TARGET_TASK)
-                cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                            (fname, gen, score, p[parent_num][1], 0, p[parent_num][2]))
-                conn.commit()
-            else:
-                # update this to be any two parents selected without same origin_id
-                child_code = llmTools.llm_crossover(p[0][0], p[1][0], TARGET_TASK)
+        # performance array #num islandsxPOPULATION_SIZE
+        for i in range(NUM_ISLANDS):
+            print(f"\n-- Evolving Island {i} --")
+            perf_array = np.zeros((3, POPULATION_SIZE))  
+            mut_or_mix = random.random() 
+            # move parent selection outside of mutation loop as only one parent will be selected
+            #parent_num = int(random.random() * (len(p)- 1))
+            for k in range(POPULATION_SIZE):
+                print(f"-- Child {k} of Island {i} --")
+                print(f"k: {k} --")
+                index += 1
+                if mut_or_mix < 0:#MUTATION_RATE: make it crossover for now
+                    if k == 0 :
+                        child_code = llmTools.llm_mutate(p[i][0], TARGET_TASK)
+                        fname = save_code(child_code, gen+1, index)
+                        score = llmTools.llm_score(child_code, TARGET_TASK)
+                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                    (fname, gen+1, score, p[i][1], 0, i))
+                        
+                        conn.commit()
+                        #print(f"Inserted first mutated child from parent {p[i][2]}")
+                        new_parent_code = child_code
+                        new_parent_1 = index
+                        new_parent_2 = 0
+                        new_parent_oid = p[i][2]
+                    else: 
+                        child_code = llmTools.llm_mutate(new_parent_code, TARGET_TASK)
+                        fname = save_code(child_code, gen+1, index)
+                        score = llmTools.llm_score(child_code, TARGET_TASK)
+                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                    (fname, gen+1, score, new_parent_1, new_parent_2, i))
+                        conn.commit()
+                        #print(f"Inserted first mutated child from parent {new_parent_oid}")
+                        new_parent_code = child_code
+                        new_parent_1 = index
+                        #new_parent_2 = 0
+                        #new_parent_oid = p[parent_num][2]
+                else:
+                    if k == 0:
+                        # update this to be any two parents selected without same origin_id
+                        child_code = llmTools.llm_crossover(p[0][0], p[1][0], TARGET_TASK)
+                        fname = save_code(child_code, gen+1, index)
+                        score = llmTools.llm_score(child_code, TARGET_TASK)
+                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                    (fname, gen+1, score, p[0][1], p[1][1], i))
+                        conn.commit()
+                        #print(f"Inserted first mutated child from parent {p[i][2]}")
+                        new_parent_code = child_code
+                        new_parent_1 = index
+                        new_parent_2 = p[1][1]
+                        #new_parent_oid = p[0][2]
+                    else:
+                        # randomly select original parent to crossover with
+                        if random.random() < 0.5:
+                            parent_to_use = 0
+                        else:
+                            parent_to_use = 1
+                        child_code = llmTools.llm_crossover(new_parent_code, p[parent_to_use][0], TARGET_TASK)
+                        fname = save_code(child_code, gen+1, index)
+                        score = llmTools.llm_score(child_code, TARGET_TASK)
+                        cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
+                                    (fname, gen+1, score, new_parent_1, p[parent_to_use][1], i))
+                        conn.commit()
+                        #print(f"Inserted first mutated child from parent {new_parent_oid}")
+                        new_parent_code = child_code
+                        new_parent_1 = index
+                        new_parent_2 = p[parent_to_use][1]
+                        #new_parent_oid = p[0][2]
+                print(f"→ {fname}: score={score:.2f}")
 
-                fname = save_code(child_code, gen, index)
-                score = llmTools.llm_score(child_code, TARGET_TASK)
-                cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
-                            (fname, gen, score, p[0][1], p[1][1], p[0][2]))
-                conn.commit()
-            print(f"→ {fname}: score={score:.2f}")
-
-            # Track Performance
-            perf_array[0][k] = score
-            perf_array[1][k] = index
-            perf_array[2][k] = p[parent_num][2]  # origin_id            
-        #vis.log_performance(perf_array)
-        #vis.plot_performance()
-        time.sleep(1)
-        # count the cost
-        money_array = np.array(llmTools.MONEY)
-        money_sums = money_array.sum(axis=0)
-        with open('costs.txt', 'a', encoding='utf-8') as f:
-            f.write(f" {money_sums[0]}, ${money_sums[1]}\n")
+                # Track Performance
+                perf_array[0][k] = score
+                perf_array[1][k] = index
+                perf_array[2][k] = p[i][2]  # origin_id set as i so some have different origin ids       
+            #vis.log_performance(perf_array)
+            #vis.plot_performance()
+            time.sleep(1)
+            # count the cost
+            money_array = np.array(llmTools.MONEY)
+            money_sums = money_array.sum(axis=0)
+            with open('costs.txt', 'a', encoding='utf-8') as f:
+                f.write(f" {money_sums[0]}, ${money_sums[1]}\n")
     print("\nDone evolving!")
     
 if __name__ == "__main__":
     main()
-    #print(select_top(db_setup()[1], 0))
+    Visualizations(NUM_GENERATIONS).empty_db()
