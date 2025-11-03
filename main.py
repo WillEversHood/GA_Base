@@ -9,7 +9,7 @@ from visualizations import Visualizations
 
 # --- Configuration ---
 POPULATION_SIZE = 2
-NUM_GENERATIONS = 2
+NUM_GENERATIONS = 1
 MUTATION_RATE = 0.4
 DB_PATH = "db.sqlite3"
 POP_DIR = Path("population")
@@ -117,7 +117,7 @@ def main():
                 print(f"-- Child {k} of Island {i} --")
                 print(f"k: {k} --")
                 index += 1
-                if mut_or_mix < random.random(): #MUTATION_RATE: make it crossover for now
+                if mut_or_mix < 0: #MUTATION_RATE: make it crossover for now
                     child_code = llmTools.llm_mutate(p[i][0], TARGET_TASK)
                     fname = save_code(child_code, gen+1, index)
                     score = llmTools.llm_score(child_code, TARGET_TASK)
