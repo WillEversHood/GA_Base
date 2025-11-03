@@ -10,6 +10,7 @@ from visualizations import Visualizations
 # --- Configuration ---
 POPULATION_SIZE = 2
 NUM_GENERATIONS = 1
+CONTEXT_LIMIT = 3
 MUTATION_RATE = 0.4
 DB_PATH = "db.sqlite3"
 POP_DIR = Path("population")
@@ -113,12 +114,15 @@ def main():
             mut_or_mix = random.random() 
             # move parent selection outside of mutation loop as only one parent will be selected
             #parent_num = int(random.random() * (len(p)- 1))
+            code_list = []
+            code_list.append(p[i][0])
             for k in range(POPULATION_SIZE):
                 print(f"-- Child {k} of Island {i} --")
                 print(f"k: {k} --")
                 index += 1
                 if mut_or_mix < 0: #MUTATION_RATE: make it crossover for now
-                    child_code = llmTools.llm_mutate(p[i][0], TARGET_TASK)
+                    child_code = llmTools.llm_mutate(code_list, TARGET_TASK, CONTEXT_LIMIT)
+                    code_list.append(child_code)
                     fname = save_code(child_code, gen+1, index)
                     score = llmTools.llm_score(child_code, TARGET_TASK)
                     cur.execute("INSERT INTO population (filename, generation, score, parent1, parent2, origin_id) VALUES (?, ?, ?, ?, ?, ?)",
@@ -150,4 +154,4 @@ def main():
     
 if __name__ == "__main__":
     main()
-    Visualizations(NUM_GENERATIONS).empty_db()
+    Visualizations(NUM_GENERATIONS).island_visualization()

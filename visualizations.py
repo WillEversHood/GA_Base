@@ -136,7 +136,7 @@ class Visualizations:
                 conn.close()
     
     def island_visualization(self):        
-        x = np.arange(self.num_gen)
+        x = np.arange(self.num_gen + 1)
         data = self.get_best_entries()
         num_islands = data['origin_id'].nunique()
         num_gen = data['generation'].nunique()
@@ -172,5 +172,5 @@ class Visualizations:
         conn.close()
      
 
-#vis = Visualizations(4)
-#vis.empty_db()
+#vis = Visualizations(1)
+#vis.island_visualization()
