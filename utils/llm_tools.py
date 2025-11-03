@@ -102,17 +102,24 @@ class LLMTools:
 
 
 
-    def llm_mutate(self, code: str, task: str) -> str:
+    def llm_mutate(self, code: list, task: str, context_limit: int) -> str:
         api_key = os.getenv("GEMINI_API_KEY")
+        if not code:
+            raise ValueError("Code list is empty")
         if not api_key:
             raise ValueError("Missing GEMINI_API_KEY in .env file")
         """
         Use an LLM to intelligently mutate the code while preserving function.
         """
+        #process list of code examples into single 
+        if len(code) > context_limit:
+            code = "\n\n###\n\n".join(code[:context_limit])
+        else:
+            code = "\n\n###\n\n".join(code)
         prompt = dedent(f"""
         Improve the following code to better accomplish the
         Task: {task}
-        Original code:
+        Original code examples:
         {code}
 
         Return only the improved code and no explanations at all.    
